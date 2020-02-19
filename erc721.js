@@ -277,13 +277,24 @@ async function transfer(
     new Element(outputCommitment, 'field'),
   ]);
 
-  await zokrates.computeWitness(codePath, outputDirectory, `${commitment}-${witnessName}`, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/${commitment}-witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: `${commitment}-${proofName}`,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
 
   let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 
@@ -439,13 +450,24 @@ async function burn(
     new Element(root, 'field'),
   ]);
 
-  await zokrates.computeWitness(codePath, outputDirectory, `${commitment}-${witnessName}`, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/${commitment}-witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: `${commitment}-${proofName}`,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
 
   let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 

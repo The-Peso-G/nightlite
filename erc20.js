@@ -420,16 +420,29 @@ async function transfer(
   );
   logger.debug(`./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-transfer/out`);
 
-  await zokrates.computeWitness(codePath, outputDirectory, `${outputCommitments[0].commitment}-${witnessName}`, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${outputCommitments[0].commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Computing proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/${outputCommitments[0].commitment}-witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: `${outputCommitments[0].commitment}-${proofName}`,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${outputCommitments[0].commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${outputCommitments[0].commitment}-${proofName}`,
+    },
+  );
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${outputCommitments[0].commitment}-${proofName}`));
+  let { proof } = JSON.parse(
+    fs.readFileSync(`${outputDirectory}/${outputCommitments[0].commitment}-${proofName}`),
+  );
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -605,16 +618,29 @@ async function simpleFungibleBatchTransfer(
     `./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-batch-transfer/out`,
   );
 
-  await zokrates.computeWitness(codePath, outputDirectory, `${inputCommitment.commitment}-${witnessName}`, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${inputCommitment.commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Generating proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/${inputCommitment.commitment}-witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: `${inputCommitment.commitment}-${proofName}`,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${inputCommitment.commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${inputCommitment.commitment}-${proofName}`,
+    },
+  );
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${inputCommitment.commitment}-${proofName}`));
+  let { proof } = JSON.parse(
+    fs.readFileSync(`${outputDirectory}/${inputCommitment.commitment}-${proofName}`),
+  );
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -778,14 +804,25 @@ async function burn(
   );
   logger.debug(`./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-burn/out`);
 
-  await zokrates.computeWitness(codePath, outputDirectory, `${commitment}-${witnessName}`, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Computing proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/${commitment}-witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: `${commitment}-${proofName}`,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
 
   let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 
