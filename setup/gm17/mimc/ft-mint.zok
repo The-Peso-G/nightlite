@@ -2,16 +2,15 @@
 import "hashes/sha256/1024bit.code" as sha256of1024
 import "hashes/sha256/512bit.code" as sha256of512
 
-import "./common/concat/concatenate256x128x256.zok" as concatenate256x128x256
-import "./common/concat/concatenate256x128x256x256.zok" as concatenate256x128x256x256
+import "../common/concat/concatenate256x128x256.zok" as concatenate256x128x256
+import "../common/concat/concatenate256x128x256x256.zok" as concatenate256x128x256x256
 
 import "utils/pack/unpack128.code" as unpack128
 import "utils/pack/nonStrictUnpack256.code" as unpack256
-import "./common/packing/unpack2x128To256.zok" as unpack2x128To256
+import "../common/packing/unpack2x128To256.zok" as unpack2x128To256
 
-
-import "./common/hashes/sha256/padding/shaPad640To1024" as shaPad640To1024
-import "./common/hashes/sha256/padding/shaPad896To1024" as shaPad896To1024
+import "../common/hashes/sha256/padding/shaPad640To1024" as shaPad640To1024
+import "../common/hashes/sha256/padding/shaPad896To1024" as shaPad896To1024
 
 // Inputs for main are:
 // - value (public) is the 128 bit coin value
@@ -33,11 +32,13 @@ def main(field publicInputHash, private field contractAddress, private field val
 	field[256] commitmentBits = unpack2x128To256(commitment)
 
 
-	// Compute commitment = H(contractAddress|value|publicKey|salt):
+	// Compute commitment = H(value|publicKey|salt):
 
 	field[896] commitmentPreImage = concatenate256x128x256x256(contractAddressBits, valueBits, publicKeyBits, saltBits)
-	field[1024] commitmentPreImagePadded = shaPad896To1024(commitmentPreImage)
-	field[256] commitmentBitsCheck = sha256of1024(commitmentPreImagePadded[0..256], commitmentPreImagePadded[256..512], commitmentPreImagePadded[512..768], commitmentPreImagePadded[768..1024])
+	field[1024] preimage1024 = shaPad896To1024(commitmentPreImage)
+
+	field[256] commitmentBitsCheck = sha256of1024(preimage1024[0..256], preimage1024[256..512], preimage1024[512..768], preimage1024[768..1024])
+
 
 	// This checks if the commitmentBitsCheck we computed using the 'value' (which is hash(value|publicKey|salt)) is equal to the input commitment:
 	commitmentBits == commitmentBitsCheck

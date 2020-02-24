@@ -2,19 +2,22 @@ import "hashes/sha256/1024bit.code" as sha256of1024
 import "hashes/sha256/512bit.code" as sha256of512
 import "hashes/sha256/1536bit.code" as sha256of1536
 
-import "./common/concat/concatenate256x256.zok" as concatenate256x256
-import "./common/concat/concatenate3x256.zok" as concatenate3x256
-import "./common/concat/concatenate4x256.zok" as concatenate4x256
+import "../common/concat/concatenate256x256.zok" as concatenate256x256
+import "../common/concat/concatenate3x256.zok" as concatenate3x256
+import "../common/concat/concatenate4x256.zok" as concatenate4x256
 
 import "utils/pack/unpack128.code" as unpack128
 import "utils/pack/nonStrictUnpack256.code" as unpack256
+import "utils/pack/pack128.code" as pack128
+import "utils/pack/pack256.code" as pack256
+import "../common/packing/unpack2x128To256.zok" as unpack2x128To256
 
-import "./common/hashes/sha256/padding/shaPad256To512.zok" as shaPad256To512
-import "./common/hashes/sha256/padding/shaPad1024To1536.zok" as shaPad1024To1536
-import "./common/hashes/sha256/padding/shaPad512To1024" as shaPad512To1024
-import "./common/hashes/sha256/padding/shaPad768To1024" as shaPad768To1024
+import "../common/hashes/sha256/padding/shaPad256To512.zok" as shaPad256To512
+import "../common/hashes/sha256/padding/shaPad1024To1536.zok" as shaPad1024To1536
+import "../common/hashes/sha256/padding/shaPad512To1024" as shaPad512To1024
+import "../common/hashes/sha256/padding/shaPad768To1024" as shaPad768To1024
 
-import "./common/merkle-tree/sha-root.zok" as sharoot
+import "../common/merkle-tree/mimc-root.zok" as mimcroot
 
 // Inputs for main are:
 // asset - the tokenId of the ERC-721 token
@@ -32,47 +35,24 @@ import "./common/merkle-tree/sha-root.zok" as sharoot
 
 // Each field element passed to main() can be at most 128bits, to make use of unpack128() so most variables occupy two fields (except the publicInputHash, which we maximize as 248-bits)
 
-def main(field publicInputHash, private field contractAddress, private field assetHigh, private field assetLow, private field[32] siblingPath, private field order, private field nullifierHigh, private field nullifierLow, private field publicKeyBHigh, private field publicKeyBLow, private field  saltAHigh, private field saltALow, private field saltBHigh, private field  saltBLow, private field secretKeyAHigh, private field secretKeyALow, private field rootHigh, private field rootLow, private field commitmentBHigh, private field commitmentBLow)->():
+def main(field publicInputHash, private field contractAddress, private field[2] asset, private field[32] path, private field order, private field[2] nullifier, private field[2] publicKeyB, private field[2]  saltA, private field[2] saltB, private field[2] secretKeyA, private field root, private field[2] commitmentB)->():
 
 	// Unpack the inputs of main() to 128 bits. We'll unpack each field to its own 128 bit strings for simplicity for now. Later efficiencies could be made by grouping some inputs.
 
 	field[256] publicInputHashBits = unpack256(publicInputHash)
-
 	field[256] contractAddressBits = unpack256(contractAddress)
 
-	field[128] assetHighBits = unpack128(assetHigh) //this may seem long-winded but ZoKrates needs intermediate variables for now
-	field[128] assetLowBits = unpack128(assetLow)
-	field[256] assetBits = [...assetHighBits, ...assetLowBits]
-
-	field[128] secretKeyAHighBits = unpack128(secretKeyAHigh)
-	field[128] secretKeyALowBits = unpack128(secretKeyALow)
-	field[256] secretKeyABits = [...secretKeyAHighBits, ...secretKeyALowBits]
+	field[256] assetBits = unpack2x128To256(asset)
+	field[256] secretKeyABits = unpack2x128To256(secretKeyA)
 	field[512] secretKeyAPadded = shaPad256To512(secretKeyABits)
 
-	field[128] saltBHighBits = unpack128(saltBHigh)
-	field[128] saltBLowBits = unpack128(saltBLow)
-	field[256] saltBBits = [...saltBHighBits, ...saltBLowBits]
+	field[256] saltBBits = unpack2x128To256(saltB)
+	field[256] saltABits = unpack2x128To256(saltA)
+	field[256] nullifierBits = unpack2x128To256(nullifier)
+	field[256] publicKeyBBits = unpack2x128To256(publicKeyB)
+	field[256] commitmentBBits = unpack2x128To256(commitmentB)
 
-	field[128] saltAHighBits = unpack128(saltAHigh)
-	field[128] saltALowBits = unpack128(saltALow)
-	field[256] saltABits = [...saltAHighBits, ...saltALowBits]
-
-	field[128] nullifierHighBits = unpack128(nullifierHigh)
-	field[128] nullifierLowBits = unpack128(nullifierLow)
-	field[256] nullifierBits = [...nullifierHighBits, ...nullifierLowBits]
-
-	field[128] publicKeyBHighBits = unpack128(publicKeyBHigh)
-	field[128] publicKeyBLowBits = unpack128(publicKeyBLow)
-	field[256] publicKeyBBits = [...publicKeyBHighBits, ...publicKeyBLowBits]
-
-	field[128] commitmentBHighBits = unpack128(commitmentBHigh)
-	field[128] commitmentBLowBits = unpack128(commitmentBLow)
-	field[256] commitmentBBits = [...commitmentBHighBits, ...commitmentBLowBits]
-
-	field[128] rootHighBits = unpack128(rootHigh)
-	field[128] rootLowBits = unpack128(rootLow)
-	field[256] rootBits = [...rootHighBits, ...rootLowBits]
-
+	field[256] rootBits = unpack256(root)
 
 	// H(saltA|secretKeyA) = nullifier.
 
@@ -89,11 +69,14 @@ def main(field publicInputHash, private field contractAddress, private field ass
 	// And calculation of the commitment
 	field[1024] commitmentAPreImage = concatenate4x256(contractAddressBits, assetBits, publicKeyABits, saltABits)
 	field[1536] commitmentAPadded = shaPad1024To1536(commitmentAPreImage)
-
 	field[256] commitmentA = sha256of1536(commitmentAPadded[0..256], commitmentAPadded[256..512], commitmentAPadded[512..768], commitmentAPadded[768..1024], commitmentAPadded[1024..1280], commitmentAPadded[1280..1536]) // commitmentA
 
 	// concatenate siblings and hash all the way up to the root:
-	field[256] rootBitsCheck = sharoot(siblingPath, order, commitmentA)
+	field mimcHash = pack256(commitmentA)
+	mimcHash = mimcroot(path, order, mimcHash)
+
+	// save the computed root:
+	field rootCheck = mimcHash
 
 	// Know asset|publicKeyB|saltB such that H(asset|publicKeyB|saltB) = commitmentB
 	field[1024] commitmentBPreImage = concatenate4x256(contractAddressBits, assetBits, publicKeyBBits, saltBBits)
@@ -106,7 +89,7 @@ def main(field publicInputHash, private field contractAddress, private field ass
 
 	nullifierBits == nullifierBitsCheck
 
-	rootBits == rootBitsCheck
+	root == rootCheck
 
 	commitmentBBits == commitmentBBitsCheck
 

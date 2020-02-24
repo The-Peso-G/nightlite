@@ -289,6 +289,8 @@ async function transfer(
   const publicInputHash = utils.concatenateThenHash(root, nullifier, outputCommitment);
   logger.debug('publicInputHash:', publicInputHash);
 
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
     new Element(erc721AddressPadded, 'field', 248, 1),
@@ -300,7 +302,7 @@ async function transfer(
     new Element(originalCommitmentSalt, 'field'),
     new Element(newCommitmentSalt, 'field'),
     new Element(senderZkpPrivateKey, 'field'),
-    new Element(root, 'field'),
+    rootElement
     new Element(outputCommitment, 'field'),
   ]);
 
@@ -468,6 +470,8 @@ async function burn(
   );
   logger.debug('publicInputHash:', publicInputHash);
 
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
     new Element(erc721AddressPadded, 'field', 248, 1),
@@ -478,7 +482,7 @@ async function burn(
     ...siblingPathElements.slice(1),
     commitmentIndexElement,
     new Element(nullifier, 'field'),
-    new Element(root, 'field'),
+    rootElement
   ]);
 
   await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
