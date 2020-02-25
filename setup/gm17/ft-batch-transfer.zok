@@ -25,15 +25,11 @@ def sha256of6144(field[256] a0, field[256] a1, field[256] a2, field[256] a3, fie
     digest12 =  sha256(a22, a23, digest11)
 	return digest12
 
-def concatenate128x256x256(field[128] a, field[256] b, field[256] c)->(field[640]):
-	return [...a, ...b, ...c]
+def concatenate256x128x256x256(field[256] a, field[128] b, field[256] c, field[256] d)->(field[896]):
+	return [...a, ...b, ...c, ...d]
 
 def concatenate256x256(field[256] a, field[256] b)->(field[512]):
 	return [...a, ...b]
-
-def concatenate256x256x256x256x256(field[256] a, field[256] b, field[256] c, field[256] d, field[256] e)->(field[1280]):
-	return [...a, ...b, ...c, ...d, ...e]
-
 
 def orderedConcatenate216x216(field order, field[216] pathNode, field[216] siblingNode)->(field[432]):
 	field[216] left = if order == 0 then pathNode else siblingNode fi
@@ -42,6 +38,9 @@ def orderedConcatenate216x216(field order, field[216] pathNode, field[216] sibli
 
 def shaPad432To512(field[432] a)->(field[512]):
 	return [...a, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,1,0,1,1,0,0,0,0]
+
+def shaPad896To1024(field[896] a)->(field[1024]):
+	return [...a, 1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  0,  0,  0,  0,  0,  0,  0]
 
 // Provides the padding (only!) for a 256-bit message.
 def shaPad256To512()->(field[256]):
@@ -132,9 +131,10 @@ def concatenateFields22xx2xx128(field[22][2] a)->(field[5632]):
 // is that our code can be written to work as if we're using a 'full' 256 bit sha hash - it's just that we define the top 40 bits to be zero.  That makes it easy to change to other bit
 // lengths in the future. It's painful to pass in a full 256 bits because we have to split it across two fields (Fp<256) and that makes the code much larger.
 
-def main(field publicInputHash, private field inputValue, private field[2] secretKeyA, private field[2] inputSalt, private field[32] path, private field order, private field[2] nullifier, private field[20] outputValues, private field[20][2] publicKeys, private field[20][2] outputSalts, private field[20][2] outputCommitments, private field[2] root)->():
+def main(field publicInputHash, private field contractAddress, private field inputValue, private field[2] secretKeyA, private field[2] inputSalt, private field[32] path, private field order, private field[2] nullifier, private field[20] outputValues, private field[20][2] publicKeys, private field[20][2] outputSalts, private field[20][2] outputCommitments, private field[2] root)->():
 
   field[256] publicInputHashBits = unpack256(publicInputHash)
+  field[256] contractAddressBits = unpack256(contractAddress)
 
 	field[256] padding256To512 = shaPad256To512()
 	field[512] padding512To1024 = shaPad512To1024()
@@ -155,29 +155,29 @@ def main(field publicInputHash, private field inputValue, private field[2] secre
   nullifierBitsCheck = sha256of1024(preimage512[0..256], preimage512[256..512], padding512To1024[0..256], padding512To1024[256..512])
   nullifierBits == nullifierBitsCheck
 
-	// H(inputValue|publicKeyA|inputSalt) = Alices commitment is in the Merkle Tree
 
 	// Calculation of publicKeyA from H(secretKeyA)
 	field[256] publicKeyABits = sha256of512(secretKeyABits, padding256To512)
 
+	// H(inputValue|publicKeyA|inputSalt) = Alices commitment is in the Merkle Tree
 	// And calculation of input commitment
 	field[128] inputValueBits = unpack128(inputValue)
-  inputValueBits[0] == 0 // overflow check
-	field[640] preimage640 = concatenate128x256x256(inputValueBits, publicKeyABits, inputSaltBits)
-	field[1024] preimage1024 = [...preimage640, ...padding640To1024]
-	field[256] hash = sha256of1024(preimage1024[0..256], preimage1024[256..512], preimage1024[512..768], preimage1024[768..1024]) // commitmentC
+  	inputValueBits[0] == 0 // overflow check
+	field[896] inputCommitmentPreImage = concatenate256x128x256x256(contractAddressBits, inputValueBits, publicKeyABits, inputSaltBits)
+	field[1024] inputCommitmentPadded = shaPad896To1024(inputCommitmentPreImage)
+	field[256] inputCommitment = sha256of1024(inputCommitmentPadded[0..256], inputCommitmentPadded[256..512], inputCommitmentPadded[512..768], inputCommitmentPadded[768..1024]) // commitmentC
 
 	// concatenate siblings and hash all the way up to the root
 	field[128] orderBits = unpack128(order) // need to access an array of bits
 	for field i in 0..32 do
 		field j = 31-i
-    field k = 127-i
-		preimage512 = shaPad432To512(orderedConcatenate216x216(orderBits[k], hash[40..256], unpackSiblingNode(path[j])))
-		hash = sha256of512(preimage512[0..256], preimage512[256..512])
+    	field k = 127-i
+		preimage512 = shaPad432To512(orderedConcatenate216x216(orderBits[k], inputCommitment[40..256], unpackSiblingNode(path[j])))
+		inputCommitment = sha256of512(preimage512[0..256], preimage512[256..512])
 	endfor
 	// check we have indeed recovered the root:
-  rootBits = unpack2xx128To256(root)
-  rootBits == hash
+	rootBits = unpack2xx128To256(root)
+	rootBits == inputCommitment
 
 	// Next up - prove that value is in commitment for all output commitments
 
@@ -186,13 +186,13 @@ def main(field publicInputHash, private field inputValue, private field[2] secre
 	// Also, while we're looping, let's add up how much we will spend and check for overflows:
 	field total = 0
 	for field i in 0..20 do
-    field[256] outputCommitment = unpack2xx128To256(outputCommitments[i])
-    field[128] outputValueBits = unpack128(outputValues[i])
-    field[256] publicKeyBits = unpack2xx128To256(publicKeys[i])
-    field[256] outputSaltBits = unpack2xx128To256(outputSalts[i])
-		preimage640 = concatenate128x256x256(outputValueBits, publicKeyBits, outputSaltBits)
-		preimage1024 = [...preimage640, ...padding640To1024]
-		field[256] commitmentBitsCheck = sha256of1024(preimage1024[0..256], preimage1024[256..512], preimage1024[512..768], preimage1024[768..1024])
+		field[256] outputCommitment = unpack2xx128To256(outputCommitments[i])
+		field[128] outputValueBits = unpack128(outputValues[i])
+		field[256] publicKeyBits = unpack2xx128To256(publicKeys[i])
+		field[256] outputSaltBits = unpack2xx128To256(outputSalts[i])
+		field[896] outputCommitmentPreImage = concatenate256x128x256x256(contractAddressBits, outputValueBits, publicKeyBits, outputSaltBits)
+		field[1024] outputCommitmentPadded = shaPad896To1024(outputCommitmentPreImage)
+		field[256] commitmentBitsCheck = sha256of1024(outputCommitmentPadded[0..256], outputCommitmentPadded[256..512], outputCommitmentPadded[512..768], outputCommitmentPadded[768..1024])
 
 		outputCommitment == commitmentBitsCheck // valid commitment check
 

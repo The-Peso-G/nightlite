@@ -19,7 +19,8 @@
     "ethlint": "^1.2.4",
     "markdownlint-cli": "^0.18.0",
     "nodemon": "^1.19.2",
-    "prettier-plugin-solidity": "^1.0.0-alpha.31"
+    "prettier-plugin-solidity": "^1.0.0-alpha.31",
+    "yargs": "^15.1.0"
   },
   "dependencies": {
     "@eyblockchain/zokrates.js": "^1.2.0",
