@@ -107,10 +107,10 @@ def main(field publicInputHash, private field contractAddress, private field inp
 		outputValueBits[0] == 0 // overflow check
 	endfor
 
-	// Sum check - we don't want anyone to create money.
-	total == inputValue
+    // Sum check - we don't want anyone to create money.
+    total == inputValue
 
-	// Check that the 'public inputs' hash to the publicInputHash:
+    // Check that the 'public inputs' hash to the publicInputHash:
 
 	field[5632] preimage5632 = concatenateFields22x2x128([root, nullifier, ...outputCommitments])
     field[6144] preimage6144 = shaPad5632To6144(preimage5632)
@@ -118,4 +118,4 @@ def main(field publicInputHash, private field contractAddress, private field inp
 
     publicInputHashBits[8..256] == publicInputHashBitsCheck[8..256]
 
-	return
+return

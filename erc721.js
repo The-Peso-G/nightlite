@@ -156,7 +156,7 @@ async function mint(tokenId, zkpPublicKey, salt, blockchainOptions, zokratesOpti
     return log.event === 'NewLeaf';
   });
   const commitmentIndex = newLeafLog[0].args.leafIndex;
-
+  logger.debug('root in solidity:', newLeafLog[0].args.root);
   logger.debug('Mint output: [z_A, z_A_index]:', commitment, commitmentIndex.toString());
   logger.debug('MINT COMPLETE\n');
 
@@ -289,7 +289,7 @@ async function transfer(
   const publicInputHash = utils.concatenateThenHash(root, nullifier, outputCommitment);
   logger.debug('publicInputHash:', publicInputHash);
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
 
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
@@ -470,7 +470,7 @@ async function burn(
   );
   logger.debug('publicInputHash:', publicInputHash);
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
 
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),

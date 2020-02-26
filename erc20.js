@@ -408,7 +408,7 @@ async function transfer(
     utils.hexToFieldPreserve(publicInputHash, 248, 1, 1),
   );
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
 
   // compute the proof
   logger.debug('Computing witness...');
@@ -605,7 +605,7 @@ async function simpleFungibleBatchTransfer(
     ...outputCommitments.map(item => item.commitment),
   );
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
 
   // compute the proof
   logger.debug('Computing witness...');
@@ -973,7 +973,7 @@ async function burn(
     ' : ',
     utils.hexToFieldPreserve(publicInputHash, 248, 1, 1),
   );
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field');
+  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
   // compute the proof
   logger.debug('Computing witness...');
 

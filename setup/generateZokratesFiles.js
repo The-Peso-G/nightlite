@@ -79,14 +79,10 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     ? outputDirectory
     : `${outputDirectory}/`;
 
-  const hashDir = process.env.HASH_TYPE === 'mimc' ? 'mimc' : [];
+  const hashDir = process.env.HASH_TYPE === 'mimc' ? '/mimc' : '';
 
   // Path to code files within this module.
-<<<<<<< HEAD
-  const gm17Path = path.join(__dirname, './gm17');
-=======
-  const gm17Path = path.join(__dirname, `./gm17/`, hashDir);
->>>>>>> feat: function abstraction and .zok renaming
+  const gm17Path = path.join(__dirname, `./gm17`, hashDir);
 
   // If there's a codeName, only compile that. Otherwise, compile everything.
   const codeFiles = codeName ? [codeName] : await readdirAsync(gm17Path);
@@ -99,7 +95,9 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     // Strip .zok from code file name.
     const codeFileName = codeFile.split('.')[0];
     const codeFileDirectory = `${outputDirWithSlash}${codeFileName}`;
-
+    if (codeFileName === 'common' || codeFileName === 'mimc') {
+      continue
+    };
     // Create a directory
     try {
       await mkdir(codeFileDirectory);
