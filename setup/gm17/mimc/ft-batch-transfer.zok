@@ -87,11 +87,11 @@ def main(field publicInputHash, private field contractAddress, private field inp
 	// check we have indeed recovered the root:
     root == mimcHash // root[0] contains nothing and is just there for legacy reasons TODO - remove it.
 
-	// Next up - prove that value is in commitment for all output commitments
+    // Next up - prove that value is in commitment for all output commitments
 
-	// Work out commitment[i] = H(value[i]|publicKeys[i]|outputSalts[i])
-	// Also check the commitment is correct within the loop because storing the commitments as an array of arrays, so we can check at the end like we normally do, would be hard
-	// Also, while we're looping, let's add up how much we will spend and check for overflows:
+    // Work out commitment[i] = H(value[i]|publicKeys[i]|outputSalts[i])
+    // Also check the commitment is correct within the loop because storing the commitments as an array of arrays, so we can check at the end like we normally do, would be hard
+    // Also, while we're looping, let's add up how much we will spend and check for overflows:
 
 	field total = 0
 	for field i in 0..20 do
@@ -103,17 +103,17 @@ def main(field publicInputHash, private field contractAddress, private field inp
 		field[1024] outputCommitmentPadded = shaPad896To1024(outputCommitmentPreImage)
 		field[256] commitmentBitsCheck = sha256of1024(outputCommitmentPadded[0..256], outputCommitmentPadded[256..512], outputCommitmentPadded[512..768], outputCommitmentPadded[768..1024])
 
-		outputCommitment == commitmentBitsCheck // valid commitment check
+        outputCommitment == commitmentBitsCheck // valid commitment check
 
-		total = total + outputValues[i]
-		outputValueBits[0] == 0 // overflow check
-	endfor
+        total = total + outputValues[i]
+        outputValueBits[0] == 0 // overflow check
+    endfor
 
-	// Sum check - we don't want anyone to create money.
-	total == inputValue
+    // Sum check - we don't want anyone to create money.
+    total == inputValue
 
-	// Check that the 'public inputs' hash to the publicInputHash:
-  // preimage = concatenate([root, nullifier, ...outputCommitments])
+    // Check that the 'public inputs' hash to the publicInputHash:
+    // preimage = concatenate([root, nullifier, ...outputCommitments])
 
     // field[5120] outputCommitmentsBits = concatenateFields20x2x128(outputCommitments)
     field[256] rootBits = unpack256(root)
@@ -125,4 +125,4 @@ def main(field publicInputHash, private field contractAddress, private field inp
 
     publicInputHashBits[8..256] == publicInputHashBitsCheck[8..256]
 
-	return
+    return
