@@ -26,6 +26,7 @@ const erc20Interface = require('./contracts/ERC20Interface.json');
  * @param {String} zkpPublicKey - The minter's ZKP public key. Note that this is NOT the same as their Ethereum address.
  * @param {String} salt - Alice's token serial number as a hex string
  * @param {Object} blockchainOptions
+ * @param {String} blockchainOptions.erc20Address - Address of ERC20 contract
  * @param {String} blockchainOptions.fTokenShieldJson - ABI of fTokenShieldInstance
  * @param {String} blockchainOptions.fTokenShieldAddress - Address of deployed fTokenShieldContract
  * @param {String} blockchainOptions.account - Account that is sending these transactions. Must be token owner.
@@ -33,7 +34,8 @@ const erc20Interface = require('./contracts/ERC20Interface.json');
  * @returns {Number} commitmentIndex
  */
 async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptions) {
-  const { fTokenShieldJson, fTokenShieldAddress } = blockchainOptions;
+  const { fTokenShieldJson, fTokenShieldAddress, erc20Address } = blockchainOptions;
+  const erc20AddressPadded = `0x${utils.strip0x(erc20Address).padStart(64, '0')}`;
   const account = utils.ensure0x(blockchainOptions.account);
 
   const {
@@ -53,11 +55,17 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
   logger.debug('\nIN MINT...');
 
   // Calculate new arguments for the proof:
-  const commitment = utils.concatenateThenHash(amount, zkpPublicKey, salt);
+  const commitment = utils.concatenateThenHash(erc20AddressPadded, amount, zkpPublicKey, salt);
 
   logger.debug('Existing Proof Variables:');
   const p = config.ZOKRATES_PACKING_SIZE;
   const pt = Math.ceil((config.LEAF_HASHLENGTH * 8) / config.ZOKRATES_PACKING_SIZE); // packets in bits
+  logger.debug(
+    'erc20AddressPadded',
+    erc20AddressPadded,
+    ' : ',
+    utils.hexToFieldPreserve(erc20AddressPadded, 248, 1),
+  );
   logger.debug('amount: ', `${amount} : `, utils.hexToFieldPreserve(amount, p, 1));
   logger.debug('publicKey: ', zkpPublicKey, ' : ', utils.hexToFieldPreserve(zkpPublicKey, p, pt));
   logger.debug('salt: ', salt, ' : ', utils.hexToFieldPreserve(salt, p, pt));
@@ -65,7 +73,7 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
   logger.debug('New Proof Variables:');
   logger.debug('commitment: ', commitment, ' : ', utils.hexToFieldPreserve(commitment, p, pt));
 
-  const publicInputHash = utils.concatenateThenHash(amount, commitment);
+  const publicInputHash = utils.concatenateThenHash(erc20AddressPadded, amount, commitment);
   logger.debug(
     'publicInputHash:',
     publicInputHash,
@@ -78,6 +86,7 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
 
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
+    new Element(erc20AddressPadded, 'field', 248, 1),
     new Element(amount, 'field', 128, 1),
     new Element(zkpPublicKey, 'field'),
     new Element(salt, 'field'),
@@ -109,8 +118,7 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
   // Approve fTokenShieldInstance to take tokens from minter's account.
   const fToken = contract(erc20Interface);
   fToken.setProvider(Web3.connect());
-  const fTokenAddress = await fTokenShieldInstance.getFToken.call();
-  const fTokenInstance = await fToken.at(fTokenAddress);
+  const fTokenInstance = await fToken.at(erc20Address);
 
   await fTokenInstance.approve(fTokenShieldInstance.address, parseInt(amount, 16), {
     from: account,
@@ -131,11 +139,18 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
 
   // Mint the commitment
   logger.debug('Approving ERC-20 spend from: ', fTokenShieldInstance.address);
-  const txReceipt = await fTokenShieldInstance.mint(proof, publicInputs, amount, commitment, {
-    from: account,
-    gas: 6500000,
-    gasPrice: config.GASPRICE,
-  });
+  const txReceipt = await fTokenShieldInstance.mint(
+    erc20AddressPadded,
+    proof,
+    publicInputs,
+    amount,
+    commitment,
+    {
+      from: account,
+      gas: 6500000,
+      gasPrice: config.GASPRICE,
+    },
+  );
   utils.gasUsedStats(txReceipt, 'mint');
 
   const newLeafLog = txReceipt.logs.filter(log => {
@@ -164,6 +179,7 @@ async function mint(amount, zkpPublicKey, salt, blockchainOptions, zokratesOptio
  * @param {String} receiverZkpPublicKey - Receiver's Zkp Public Key
  * @param {String} senderZkpPrivateKey - Private key of the sender's
  * @param {Object} blockchainOptions
+ * @param {String} blockchainOptions.erc20Address - ABI of fTokenShieldInstance
  * @param {String} blockchainOptions.fTokenShieldJson - ABI of fTokenShieldInstance
  * @param {String} blockchainOptions.fTokenShieldAddress - Address of deployed fTokenShieldContract
  * @param {String} blockchainOptions.account - Account that is sending these transactions
@@ -178,7 +194,8 @@ async function transfer(
   blockchainOptions,
   zokratesOptions,
 ) {
-  const { fTokenShieldJson, fTokenShieldAddress } = blockchainOptions;
+  const { fTokenShieldJson, fTokenShieldAddress, erc20Address } = blockchainOptions;
+  const erc20AddressPadded = `0x${utils.strip0x(erc20Address).padStart(64, '0')}`;
   const account = utils.ensure0x(blockchainOptions.account);
 
   const {
@@ -221,11 +238,13 @@ async function transfer(
   );
 
   outputCommitments[0].commitment = utils.concatenateThenHash(
+    erc20AddressPadded,
     outputCommitments[0].value,
     receiverZkpPublicKey,
     outputCommitments[0].salt,
   );
   outputCommitments[1].commitment = utils.concatenateThenHash(
+    erc20AddressPadded,
     outputCommitments[1].value,
     senderPublicKey,
     outputCommitments[1].salt,
@@ -394,6 +413,7 @@ async function transfer(
 
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
+    new Element(erc20AddressPadded, 'field', 248, 1),
     new Element(inputCommitments[0].value, 'field', 128, 1),
     new Element(senderZkpPrivateKey, 'field'),
     new Element(inputCommitments[0].salt, 'field'),
@@ -520,7 +540,8 @@ async function simpleFungibleBatchTransfer(
   blockchainOptions,
   zokratesOptions,
 ) {
-  const { fTokenShieldJson, fTokenShieldAddress } = blockchainOptions;
+  const { fTokenShieldJson, fTokenShieldAddress, erc20Address } = blockchainOptions;
+  const erc20AddressPadded = `0x${utils.strip0x(erc20Address).padStart(64, '0')}`;
   const account = utils.ensure0x(blockchainOptions.account);
 
   const {
@@ -561,6 +582,7 @@ async function simpleFungibleBatchTransfer(
 
   for (let i = 0; i < outputCommitments.length; i += 1) {
     outputCommitments[i].commitment = utils.concatenateThenHash(
+      erc20AddressPadded,
       outputCommitments[i].value,
       receiversPublicKeys[i],
       outputCommitments[i].salt,
@@ -598,6 +620,7 @@ async function simpleFungibleBatchTransfer(
   logger.debug('Computing witness...');
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
+    new Element(erc20AddressPadded, 'field', 248, 1),
     new Element(inputCommitment.value, 'field', 128, 1),
     new Element(senderSecretKey, 'field'),
     new Element(inputCommitment.salt, 'field'),
@@ -697,6 +720,7 @@ async function simpleFungibleBatchTransfer(
  * @param {string} commitment - the value of the commitment being burned
  * @param {string} commitmentIndex - the index of the commitment in the Merkle Tree
  * @param {Object} blockchainOptions
+ * @param {String} blockchainOptions.erc20Address - ABI of fTokenShieldInstance
  * @param {String} blockchainOptions.fTokenShieldJson - ABI of fTokenShieldInstance
  * @param {String} blockchainOptions.fTokenShieldAddress - Address of deployed fTokenShieldContract
  * @param {String} blockchainOptions.account - Account that is sending these transactions
@@ -711,7 +735,13 @@ async function burn(
   blockchainOptions,
   zokratesOptions,
 ) {
-  const { fTokenShieldJson, fTokenShieldAddress, tokenReceiver: _payTo } = blockchainOptions;
+  const {
+    fTokenShieldJson,
+    fTokenShieldAddress,
+    erc20Address,
+    tokenReceiver: _payTo,
+  } = blockchainOptions;
+  const erc20AddressPadded = `0x${utils.strip0x(erc20Address).padStart(64, '0')}`;
 
   const account = utils.ensure0x(blockchainOptions.account);
 
@@ -776,7 +806,13 @@ async function burn(
   logger.debug(`siblingPath:`, siblingPath);
   logger.debug(`commitmentIndex:`, commitmentIndex);
 
-  const publicInputHash = utils.concatenateThenHash(root, nullifier, amount, payToLeftPadded); // notice we're using the version of payTo which has been padded to 256-bits; to match our derivation of publicInputHash within our zokrates proof.
+  const publicInputHash = utils.concatenateThenHash(
+    erc20AddressPadded,
+    root,
+    nullifier,
+    amount,
+    payToLeftPadded,
+  ); // notice we're using the version of payTo which has been padded to 256-bits; to match our derivation of publicInputHash within our zokrates proof.
   logger.debug(
     'publicInputHash:',
     publicInputHash,
@@ -789,6 +825,7 @@ async function burn(
 
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
+    new Element(erc20AddressPadded, 'field', 248, 1),
     new Element(payTo, 'field'),
     new Element(amount, 'field', 128, 1),
     new Element(receiverZkpPrivateKey, 'field'),
@@ -845,6 +882,7 @@ async function burn(
 
   // Burn the commitment and return tokens to the payTo account.
   const txReceipt = await fTokenShieldInstance.burn(
+    erc20AddressPadded,
     proof,
     publicInputs,
     root,

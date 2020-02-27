@@ -90,7 +90,7 @@ async function generateZokratesFiles(outputDirectory, codeName) {
   for (let i = 0; i < codeFiles.length; i += 1) {
     const codeFile = codeFiles[i];
 
-    // Strip .code from code file name.
+    // Strip .zok from code file name.
     const codeFileName = codeFile.split('.')[0];
     const codeFileDirectory = `${outputDirWithSlash}${codeFileName}`;
 
@@ -104,9 +104,9 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     // Create files
     logger.info('Compiling', `${outputDirWithSlash}${codeFile}`);
 
-    // // Generate out.code and out in the same directory.
+    // // Generate out.ztf and out in the same directory.
     const compileOutput = await compile(
-      `${gm17Path}/${codeFileName}.code`,
+      `${gm17Path}/${codeFileName}.zok`,
       codeFileDirectory,
       'out',
       {
@@ -144,7 +144,7 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     const vkJson = await keyExtractor(`${codeFileDirectory}/verifier.sol`, true);
 
     logger.info(`Writing ${codeFileDirectory}/${codeFile.split('.')[0]}-vk.json`);
-    // Create a JSON with the file name but without .code
+    // Create a JSON with the file name but without .zok
     fs.writeFileSync(`${codeFileDirectory}/${codeFile.split('.')[0]}-vk.json`, vkJson, err => {
       if (err) {
         logger.error(err);
