@@ -685,6 +685,7 @@ async function simpleFungibleBatchTransfer(
 
   return {
     maxOutputCommitmentIndex,
+    outputCommitments,
     txReceipt,
   };
 }
@@ -960,7 +961,7 @@ async function burn(
   logger.debug(`siblingPath:`, siblingPath);
   logger.debug(`commitmentIndex:`, commitmentIndex);
 
-  const publicInputHash = utils.shahash(
+  const publicInputHash = utils.shaHash(
     erc20AddressPadded,
     root,
     nullifier,
@@ -1052,5 +1053,6 @@ module.exports = {
   mint,
   transfer,
   simpleFungibleBatchTransfer,
+  consolidationTransfer,
   burn,
 };
