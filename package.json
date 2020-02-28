@@ -40,7 +40,7 @@
   },
   "eslintConfig": {
     "extends": [
-      "./node_modules/cod-scripts/eslint.js"
+      "./config.js"
     ]
   },
   "husky": {
