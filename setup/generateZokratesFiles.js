@@ -90,6 +90,12 @@ async function generateZokratesFiles(outputDirectory, codeName) {
   for (let i = 0; i < codeFiles.length; i += 1) {
     const codeFile = codeFiles[i];
 
+    // Filter unneeded directories
+    if (codeFile === 'utils') {
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+
     // Strip .zok from code file name.
     const codeFileName = codeFile.split('.')[0];
     const codeFileDirectory = `${outputDirWithSlash}${codeFileName}`;
