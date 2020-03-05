@@ -1,27 +1,30 @@
-  import "hashes/sha256/1536bit.code" as sha256of1536
+import "hashes/sha256/1536bit.code" as sha256of1536
 import "hashes/sha256/1024bit.code" as sha256of1024
 import "hashes/sha256/512bit.code" as sha256of512
+import "hashes/sha256/IVconstants.code" as IVconstants
+import "hashes/sha256/shaRoundNoBoolCheck.code" as sha256
 
-import "./common/concat/concatenate256x256.zok" as concatenate256x256
-import "./common/concat/concatenate256x128x256x256.zok" as concatenate256x128x256x256
-import "./common/concat/concatenate256x256x256x128x256.zok" as concatenate256x256x256x128x256
+import "../common/concat/concatenate256x256.zok" as concatenate256x256
+import "../common/concat/concatenate256x128x256x256.zok" as concatenate256x128x256x256
+import "../common/concat/concatenate256x256x256x128x256.zok" as concatenate256x256x256x128x256
 
 import "utils/pack/unpack128.code" as unpack128
 import "utils/pack/nonStrictUnpack256.code" as unpack256
-import "./common/packing/unpack2x128To256.zok" as unpack2x128To256
+import "utils/pack/pack128.code" as pack128
+import "utils/pack/pack256.code" as pack256
+import "../common/packing/unpack2x128To256.zok" as unpack2x128To256
 
-import "./common/hashes/sha256/padding/shaPad256To512.zok" as shaPad256To512
-import "./common/hashes/sha256/padding/shaPad512To1024" as shaPad512To1024
-import "./common/hashes/sha256/padding/shaPad1152To1536" as shaPad1152To1536
-import "./common/hashes/sha256/padding/shaPad896To1024" as shaPad896To1024
+import "../common/hashes/sha256/padding/shaPad256To512.zok" as shaPad256To512
+import "../common/hashes/sha256/padding/shaPad512To1024" as shaPad512To1024
+import "../common/hashes/sha256/padding/shaPad1152To1536" as shaPad1152To1536
+import "../common/hashes/sha256/padding/shaPad896To1024" as shaPad896To1024
 
-import "./common/merkle-tree/sha-root.zok" as sharoot
+import "../common/merkle-tree/mimc-root.zok" as mimcroot
 
 // Inputs for main are:
 
-// contractAddress: the ERC20 contract
-// payTo: the public Ethereum address to which the burned tokens get paid
-// value: the amount contained in the commitment (public)
+// payTo, the public Ethereum address to which the burned tokens get paid
+// value, the amount contained in the commitment (public)
 // secretKey: the secret key for the commitment (private)
 // salt: the salt for the commitment (private)
 // path0b-path31b - the Merkle path for the commitment (private)
@@ -36,7 +39,7 @@ import "./common/merkle-tree/sha-root.zok" as sharoot
 
 // Each field element passed to main() can be at most 128bits, to make use of unpack128() so most variables occupy two fields (except the publicInputHash, which we maximize as 248-bits)
 
-def main(field publicInputHash, private field contractAddress, private field[2] payTo, private field value, private field[2] secretKey, private field[2] salt, private field[32] path, private field order, private field[2] nullifier, private field[2] root)->():
+def main(field publicInputHash, private field contractAddress, private field[2] payTo, private field value, private field[2] secretKey, private field[2] salt, private field[32] path, private field order, private field[2] nullifier, private field root)->():
 
 	// Unpack the inputs of main() to 128 bits. We'll unpack each field to its own 128 bit string for simplicity for now. Later efficiencies could be made by grouping some inputs. We don't need to unpack payTo, because it isn't part of a hash.
 
@@ -47,7 +50,6 @@ def main(field publicInputHash, private field contractAddress, private field[2] 
 	field[256] secretKeyBits = unpack2x128To256(secretKey)
 	field[256] saltBits = unpack2x128To256(salt)
  	field[256] nullifierBits = unpack2x128To256(nullifier)
- 	field[256] rootBits = unpack2x128To256(root)
 
 
  	// First we construct a proof that the nullifier is correct
@@ -61,29 +63,31 @@ def main(field publicInputHash, private field contractAddress, private field[2] 
 	// Prove that the commitment is in the Merkle tree
 
 	// First, calculate Alice's public key from her private key: publicKey = H(secretKey).
-
 	field[512] secretKeyPadded = shaPad256To512(secretKeyBits)
  	field[256] publicKeyBits = sha256of512(secretKeyPadded[0..256], secretKeyPadded[256..512])
 
 
- 	// Next calculate the commitment = H(contractAddress|value|publicKey|salt)
+ 	// Next calculate the commitment = H(value|publicKey|salt)
 
 	field[896] commitmentPreImage = concatenate256x128x256x256(contractAddressBits, valueBits, publicKeyBits, saltBits)
 	field[1024] commitmentPadded = shaPad896To1024(commitmentPreImage)
-	field[256] commitment = sha256of1024(commitmentPadded[0..256], commitmentPadded[256..512], commitmentPadded[512..768], commitmentPadded[768..1024]) // commitment
+	field[256] commitment = sha256of1024(commitmentPadded[0..256], commitmentPadded[256..512], commitmentPadded[512..768], commitmentPadded[768..1024])
 
 	// concatenate siblings and hash all the way up to the root:
-	field[256] rootBitsCheck = sharoot(path, order, commitment)
+	field mimcHash = pack256(commitment)
+	mimcHash = mimcroot(path, order, mimcHash)
+
+	// check the computed root:
+	root == mimcHash
+
 
  	// Now test the proofs
-
  	nullifierBits == nullifierBitsCheck
- 	rootBits == rootBitsCheck
 
 
 	// Check that the 'public inputs' hash to the publicInputHash:
 	// (This also intertwines the 'payTo' input into the proof)
-
+	field[256] rootBits = unpack256(root)
 	field[1152] publicHashPreImage = concatenate256x256x256x128x256(contractAddressBits, rootBits, nullifierBits, valueBits, payToBits)
 	field[1536] publicHashPadded = shaPad1152To1536(publicHashPreImage)
 
