@@ -1,4 +1,4 @@
-const nodeHashLength = (process.env.HASH_TYPE == 'mimc' ? 32 : 27);
+const nodeHashLength = process.env.HASH_TYPE === 'mimc' ? 32 : 27;
 
 module.exports = {
   LEAF_HASHLENGTH: 32, // expected length of an input to a hash in bytes

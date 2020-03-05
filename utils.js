@@ -9,6 +9,7 @@ const config = require('config');
 const BI = require('big-integer');
 const hexToBinary = require('hex-to-binary');
 const crypto = require('crypto');
+// eslint-disable-next-line
 const createKeccakHash = require('keccak');
 const { Buffer } = require('safe-buffer');
 const logger = require('./logger');
@@ -417,6 +418,7 @@ function powerMod(base, exponent, m) {
   let e = exponent;
   while (e > BigInt(0)) {
     if (e % BigInt(2) === BigInt(1)) result = (result * b) % m;
+    // eslint-disable-next-line no-bitwise
     e >>= BigInt(1);
     b = (b * b) % m;
   }
@@ -442,6 +444,7 @@ function mimcpe7(x, k, seed, roundCount, m) {
   let xx = x;
   let t;
   let c = seed;
+  // eslint-disable-next-line
   for (let i = 0; i < roundCount; i++) {
     c = keccak256Hash(c);
     t = addMod([xx, BigInt(c), k], m); // t = x + c_i + k
@@ -454,6 +457,7 @@ function mimcpe7(x, k, seed, roundCount, m) {
 function mimcpe7mp(x, k, seed, roundCount, m = BigInt(config.ZOKRATES_PRIME)) {
   let r = k;
   let i;
+  // eslint-disable-next-line
   for (i = 0; i < x.length; i++) {
     r = (r + (x[i] % m) + mimcpe7(x[i], r, seed, roundCount, m)) % m;
   }
@@ -508,7 +512,7 @@ function hash(item) {
  * digest: [output format ("hex" in our case)]
  * slice: [begin value] outputs the items in the array on and after the 'begin value'
  */
- function shaHash(...items) {
+function shaHash(...items) {
   const concatvalue = items
     .map(item => Buffer.from(strip0x(item), 'hex'))
     .reduce((acc, item) => concatenate(acc, item));
@@ -520,15 +524,15 @@ function hash(item) {
   return h;
 }
 
- function concatenateThenHash(...items) {
-   let h;
-   if (config.HASH_TYPE === 'mimc' || process.env.HASH_TYPE === 'mimc') {
-     h = mimcHash(...items);
-   } else {
-     h = shaHash(...items);
-   }
-   return h;
- }
+function concatenateThenHash(...items) {
+  let h;
+  if (config.HASH_TYPE === 'mimc' || process.env.HASH_TYPE === 'mimc') {
+    h = mimcHash(...items);
+  } else {
+    h = shaHash(...items);
+  }
+  return h;
+}
 
 /**
  * function to generate a promise that resolves to a string of hex

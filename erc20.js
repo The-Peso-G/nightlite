@@ -228,14 +228,9 @@ async function transfer(
 
   // Calculate new arguments for the proof:
   const senderPublicKey = utils.hash(senderZkpPrivateKey);
-  inputCommitments[0].nullifier = utils.shaHash(
-    inputCommitments[0].salt,
-    senderZkpPrivateKey,
-  );
-  inputCommitments[1].nullifier = utils.shaHash(
-    inputCommitments[1].salt,
-    senderZkpPrivateKey,
-  );
+  inputCommitments[0].nullifier = utils.shaHash(inputCommitments[0].salt, senderZkpPrivateKey);
+
+  inputCommitments[1].nullifier = utils.shaHash(inputCommitments[1].salt, senderZkpPrivateKey);
 
   outputCommitments[0].commitment = utils.shaHash(
     erc20AddressPadded,
@@ -408,7 +403,10 @@ async function transfer(
     utils.hexToFieldPreserve(publicInputHash, 248, 1, 1),
   );
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
+  const rootElement =
+    process.env.HASH_TYPE === 'mimc'
+      ? new Element(root, 'field', 256, 1)
+      : new Element(root, 'field', 128, 2);
 
   // compute the proof
   logger.debug('Computing witness...');
@@ -605,7 +603,10 @@ async function simpleFungibleBatchTransfer(
     ...outputCommitments.map(item => item.commitment),
   );
 
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
+  const rootElement =
+    process.env.HASH_TYPE === 'mimc'
+      ? new Element(root, 'field', 256, 1)
+      : new Element(root, 'field', 128, 2);
 
   // compute the proof
   logger.debug('Computing witness...');
@@ -728,7 +729,7 @@ async function consolidationTransfer(
     proofName = 'proof.json',
   } = zokratesOptions;
 
-  console.group('\nIN CONSOLIDATION TRANSFER...');
+  logger.debug('\nIN CONSOLIDATION TRANSFER...');
   logger.debug('Finding the relevant Shield and Verifier contracts');
   const fTokenShield = contract(fTokenShieldJson);
   fTokenShield.setProvider(Web3.connect());
@@ -750,11 +751,8 @@ async function consolidationTransfer(
     throw new Error(`Input commitment value was ${inputSum} but output total was ${outputSum}`);
 
   // Calculate new arguments for the proof:
-  for (let i = 0; i < inputCommitments.length; i++) {
-    inputCommitments[i].nullifier = utils.shaHash(
-      inputCommitments[i].salt,
-      senderSecretKey,
-    );
+  for (let i = 0; i < inputCommitments.length; i += 1) {
+    inputCommitments[i].nullifier = utils.shaHash(inputCommitments[i].salt, senderSecretKey);
   }
 
   outputCommitment.commitment = utils.shaHash(
@@ -766,14 +764,16 @@ async function consolidationTransfer(
 
   // Get the sibling-path from the token commitments (leaves) to the root. Express each node as an Element class.
   const inputPaths = [];
-  for (let i = 0; i < inputCommitments.length; i++) {
+  for (let i = 0; i < inputCommitments.length; i += 1) {
     inputCommitments[i].siblingPath = await merkleTree.getSiblingPath(
       account,
       fTokenShieldInstance,
       inputCommitments[i].commitment,
       inputCommitments[i].commitmentIndex,
     );
-    inputCommitments[i].siblingPathElements = Object.values(inputCommitments[i].siblingPath.slice(1));
+    inputCommitments[i].siblingPathElements = Object.values(
+      inputCommitments[i].siblingPath.slice(1),
+    );
     inputPaths.push(...inputCommitments[i].siblingPathElements);
   }
 
@@ -785,9 +785,8 @@ async function consolidationTransfer(
     outputCommitment.commitment,
   );
 
-
   // compute the proof
-  console.log('Computing witness...');
+  logger.debug('Computing witness...');
   const allInputs = utils.formatInputsForZkSnark([
     new Element(publicInputHash, 'field', 248, 1),
     new Element(erc20AddressPadded, 'field', 248, 1),
@@ -804,10 +803,10 @@ async function consolidationTransfer(
     new Element(root, 'field', 256, 1),
   ]);
 
-  console.log(
+  logger.debug(
     'To debug witness computation, use ./zok to run up a zokrates container then paste these arguments into the terminal:',
   );
-  console.log(
+  logger.debug(
     `./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-consolidation-transfer/out`,
   );
 
@@ -974,7 +973,10 @@ async function burn(
     ' : ',
     utils.hexToFieldPreserve(publicInputHash, 248, 1, 1),
   );
-  const rootElement = process.env.HASH_TYPE == 'mimc' ? new Element(root, 'field', 256, 1) : new Element(root, 'field', 128, 2);
+  const rootElement =
+    process.env.HASH_TYPE === 'mimc'
+      ? new Element(root, 'field', 256, 1)
+      : new Element(root, 'field', 128, 2);
   // compute the proof
   logger.debug('Computing witness...');
 

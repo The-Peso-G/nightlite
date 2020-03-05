@@ -96,8 +96,9 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     const codeFileName = codeFile.split('.')[0];
     const codeFileDirectory = `${outputDirWithSlash}${codeFileName}`;
     if (codeFileName === 'common' || codeFileName === 'mimc') {
+      // eslint-disable-next-line
       continue
-    };
+    }
     // Create a directory
     try {
       await mkdir(codeFileDirectory);
