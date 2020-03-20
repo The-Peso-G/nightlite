@@ -361,6 +361,14 @@ async function transfer(
   });
   const outputCommitmentIndex = newLeafLog[0].args.leafIndex;
 
+  if (fs.existsSync(`${outputDirectory}/${commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-witness`);
+
+  logger.debug(`Deleted File ${outputDirectory}/${commitment}-${proofName}`);
+
   logger.debug('TRANSFER COMPLETE\n');
 
   return {
@@ -546,6 +554,14 @@ async function burn(
     },
   );
   utils.gasUsedStats(txReceipt, 'burn');
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-witness`);
+
+  logger.debug(`Deleted File ${outputDirectory}/${commitment}-${proofName} \n`);
 
   logger.debug('BURN COMPLETE\n');
 
