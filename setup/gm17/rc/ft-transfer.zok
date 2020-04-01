@@ -59,7 +59,6 @@ def main(field publicInputHash, private field contractAddress, private field val
 	0 == if valueE < 2**128 then 0 else 1 fi
 	0 == if valueF < 2**128 then 0 else 1 fi
 
-
 	// Unpack the inputs of main() to 128 bits. We'll unpack each field to its own 128 bit string for simplicity for now. Later efficiencies could be made by grouping some inputs.
 
 	field[256] publicInputHashBits = unpack256(publicInputHash)
