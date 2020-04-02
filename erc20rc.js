@@ -64,7 +64,7 @@ async function setRootPruningInterval(interval, blockchainOptions) {
 }
 
 /**
-Blacklist an address to prevent zkp operations.  Note that this can only be called
+Wrapper function to blacklist an address to prevent zkp operations.  Note that this can only be called
 by the owner of TokenShield.sol, otherwise it will throw
 */
 async function blacklist(malfeasantAddress, blockchainOptions) {
@@ -80,7 +80,7 @@ async function blacklist(malfeasantAddress, blockchainOptions) {
   });
 }
 /**
-Un-blacklist a previously blacklisted address to enable zkp operations.
+Wrapper function to un-blacklist a previously blacklisted address to enable zkp operations.
 Note that this can only be called by the owner of TokenShield.sol, otherwise it will throw
 */
 async function unblacklist(blacklistedAddress, blockchainOptions) {
@@ -384,8 +384,14 @@ async function transfer(
   ]);
 
   // compute the sibling path for the zkp public key Merkle tree used for whitelisting
-  const publicKeyTreeData = await getPublicKeyTreeData(fTokenShieldInstance, senderPublicKey);
-  logger.debug('Public key sibling path', publicKeyTreeData.siblingPath);
+  const senderPublicKeyTreeData = await getPublicKeyTreeData(fTokenShieldInstance, senderPublicKey);
+  const receiverPublicKeyTreeData = await getPublicKeyTreeData(
+    fTokenShieldInstance,
+    receiverPublicKey,
+  );
+  // check these both have the same root
+  if (senderPublicKeyTreeData.siblingPath[0] !== receiverPublicKeyTreeData.siblingPath[0])
+    throw new Error('Roots for sender and receiver public key are not the same.');
 
   // Get the sibling-path from the token commitments (leaves) to the root. Express each node as an Element class.
   inputCommitments[0].siblingPath = await merkleTree.getSiblingPath(
@@ -526,7 +532,8 @@ async function transfer(
   logger.debug(`inputCommitments[1].siblingPath:`, inputCommitments[1].siblingPath);
   logger.debug(`inputCommitments[0].commitmentIndex:`, inputCommitments[0].commitmentIndex);
   logger.debug(`inputCommitments[1].commitmentIndex:`, inputCommitments[1].commitmentIndex);
-  logger.debug(`public key tree leaf index:`, publicKeyTreeData.leafIndex);
+  logger.debug(`sender public key tree leaf index:`, senderPublicKeyTreeData.leafIndex);
+  logger.debug(`receiver public key tree leaf index:`, receiverPublicKeyTreeData.leafIndex);
   logger.debug(`sender public key`, senderPublicKey);
 
   const compressedPublicInputsArray = [
@@ -535,7 +542,7 @@ async function transfer(
     inputCommitments[1].nullifier,
     outputCommitments[0].commitment,
     outputCommitments[1].commitment,
-    publicKeyTreeData.siblingPath[0],
+    senderPublicKeyTreeData.siblingPath[0],
     ...encryption.map(pt => edwardsCompress(pt)),
     ...AUTHORITY_PUBLIC_KEYS.map(pt => edwardsCompress(pt)),
   ];
@@ -577,9 +584,11 @@ async function transfer(
     new Element(outputCommitments[1].salt, 'field'),
     new Element(outputCommitments[1].commitment, 'field'),
     new Element(root, 'field'),
-    new Element(BigInt(publicKeyTreeData.siblingPath[0]), 'scalar'),
-    ...publicKeyTreeData.siblingPath.slice(1).map(f => new Element(BigInt(f), 'scalar')),
-    new Element(BigInt(publicKeyTreeData.leafIndex), 'scalar'),
+    new Element(BigInt(senderPublicKeyTreeData.siblingPath[0]), 'scalar'),
+    ...senderPublicKeyTreeData.siblingPath.slice(1).map(f => new Element(BigInt(f), 'scalar')),
+    new Element(BigInt(senderPublicKeyTreeData.leafIndex), 'scalar'),
+    ...receiverPublicKeyTreeData.siblingPath.slice(1).map(f => new Element(BigInt(f), 'scalar')),
+    new Element(BigInt(receiverPublicKeyTreeData.leafIndex), 'scalar'),
     ...encryption.flat().map(f => new Element(f, 'scalar')),
     ...AUTHORITY_PUBLIC_KEYS.flat().map(f => new Element(f, 'scalar')), // the double mapping is because each element of the key array is an array (representing an (x,y) curve point)
     new Element(randomSecret, 'scalar'),
