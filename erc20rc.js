@@ -548,6 +548,14 @@ async function transfer(
   ];
 
   logger.debug('array of compressed public inputs', compressedPublicInputsArray);
+  logger.debug(
+    'encryption',
+    encryption.map(pt => edwardsCompress(pt)),
+  );
+  logger.debug(
+    'admin keys',
+    AUTHORITY_PUBLIC_KEYS.map(pt => edwardsCompress(pt)),
+  );
 
   const publicInputHash = utils.concatenateThenHash(...compressedPublicInputsArray);
   logger.debug(
