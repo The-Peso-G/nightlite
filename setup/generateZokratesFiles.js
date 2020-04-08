@@ -96,7 +96,7 @@ async function generateZokratesFiles(outputDirectory, codeName) {
     // Strip .zok from code file name.
     const codeFileName = codeFile.split('.')[0];
     const codeFileDirectory = `${outputDirWithSlash}${codeFileName}`;
-    if (codeFileName === 'common' || codeFileName === 'mimc') {
+    if (codeFileName === 'common' || codeFileName === 'mimc' || codeFileName === 'rc') {
       // eslint-disable-next-line
       continue
     }
