@@ -63,7 +63,7 @@ functions.
 There are actually three sets of `.zok` files, which are selected by using a combination of the
 `HASH-TYPE` and `COMPLIANCE` environment variables. Allowed values are 'sha'|'mimc' and 'true'
 respectively. Setting other than 'true' for the COMPLIANCE variable will select the conventional
-version (either sha or mimic enabled). Use of `HASH_TYPE='mimic'` with `COMPLIANCE='true'` is not
+version (either sha or mimc enabled). Use of `HASH_TYPE='mimc'` with `COMPLIANCE='true'` is not
 currently supported. The three sets are:
 
 - A set for use with a sha-hashed Merkle tree (the original Nightfall approach `HASH_TYPE='sha'`);
