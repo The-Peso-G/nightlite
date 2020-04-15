@@ -741,7 +741,7 @@ async function consolidationTransfer(
   // check we have arrays of the correct length
   if (inputCommitments.length !== config.BATCH_PROOF_SIZE)
     // keep this for now - TODO add CONSOL_PROOF_SIZE
-    throw new Error('outputCommitments array is the wrong length');
+    throw new Error('inputCommitments array is having wrong length');
 
   // as BigInt is a better representation (up until now we've preferred hex strings), we may get inputs passed as hex strings so let's do a conversion just in case
   // addition check
@@ -856,7 +856,7 @@ async function consolidationTransfer(
   const newLeafLog = txReceipt.logs.filter(log => {
     return log.event === 'NewLeaf';
   });
-  outputCommitment.commitmentIndex = parseInt(newLeafLog[0].args.LeafIndex, 10);
+  outputCommitment.commitmentIndex = parseInt(newLeafLog[0].args.leafIndex, 10);
 
   logger.debug('CONSOLIDATION TRANSFER COMPLETE\n');
 
