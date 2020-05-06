@@ -176,15 +176,15 @@ like to use it, or MiMC hashing in general, be sure to
 in `gm17/mimc`. This can be done by changing the `HASH_TYPE` variable to `'mimc'` and proceeding as
 normal.
 
-**Note about MiMC hashing**
+Note about **MiMC hashing**:
 
 Along with completing the trusted setup with `HASH_TYPE = mimc`, be sure to use the same environment
-variable in merkle tree, otherwise there will be a mismatch. Nightlite's `config.js` ensures that 
-the parameters are set correctly for MiMC hashing, but if you have a separate config file, those 
-parameters could be overwritten and cause issues.
+variable in merkle tree, otherwise there will be a mismatch. Nightlite's core `config.js` and
+merkle tree specific `merkleTree/config.js` ensure that the parameters are set correctly for MiMC
+hashing, but if you have another global config file, those parameters could be overwritten and cause issues.
 
-In particular, MiMC hashing requires merkle tree nodes to be 32 bytes long, but SHA uses 27 bytes. 
-This is ensured in `config.js` with:
+In particular, MiMC hashing requires merkle tree nodes to be 32 bytes long, but SHA uses 27 bytes.
+This is ensured with:
 
 ```sh
 const nodeHashLength = process.env.HASH_TYPE === 'mimc' ? 32 : 27;
