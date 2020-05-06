@@ -5,13 +5,13 @@
  * Ethereum and Zokrates
  */
 
-const config = require('./config');
 const BI = require('big-integer');
 const hexToBinary = require('hex-to-binary');
 const crypto = require('crypto');
 // eslint-disable-next-line
 const createKeccakHash = require('keccak');
 const { Buffer } = require('safe-buffer');
+const config = require('./config');
 const logger = require('./logger');
 
 const inputsHashLength = 32;
