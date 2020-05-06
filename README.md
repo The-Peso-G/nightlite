@@ -186,7 +186,7 @@ parameters could be overwritten and cause issues.
 In particular, MiMC hashing requires merkle tree nodes to be 32 bytes long, but SHA uses 27 bytes. 
 This is ensured in `config.js` with:
 
-```
+```sh
 const nodeHashLength = process.env.HASH_TYPE === 'mimc' ? 32 : 27;
 
 module.exports = {
