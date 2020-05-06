@@ -5,7 +5,7 @@
  * Ethereum and Zokrates
  */
 
-const config = require('config');
+const config = require('./config');
 const BI = require('big-integer');
 const hexToBinary = require('hex-to-binary');
 const crypto = require('crypto');
