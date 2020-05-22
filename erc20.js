@@ -247,13 +247,11 @@ async function transfer(
 
   // Get the sibling-path from the token commitments (leaves) to the root. Express each node as an Element class.
   inputCommitments[0].siblingPath = await merkleTree.getSiblingPath(
-    account,
     fTokenShieldInstance,
     inputCommitments[0].commitment,
     inputCommitments[0].commitmentIndex,
   );
   inputCommitments[1].siblingPath = await merkleTree.getSiblingPath(
-    account,
     fTokenShieldInstance,
     inputCommitments[1].commitment,
     inputCommitments[1].commitmentIndex,
@@ -578,7 +576,6 @@ async function simpleFungibleBatchTransfer(
 
   // Get the sibling-path from the token commitments (leaves) to the root. Express each node as an Element class.
   inputCommitment.siblingPath = await merkleTree.getSiblingPath(
-    account,
     fTokenShieldInstance,
     inputCommitment.commitment,
     inputCommitment.commitmentIndex,
@@ -766,7 +763,6 @@ async function consolidationTransfer(
   const inputPaths = [];
   for (let i = 0; i < inputCommitments.length; i += 1) {
     inputCommitments[i].siblingPath = await merkleTree.getSiblingPath(
-      account,
       fTokenShieldInstance,
       inputCommitments[i].commitment,
       inputCommitments[i].commitmentIndex,
@@ -924,7 +920,6 @@ async function burn(
 
   // Get the sibling-path from the token commitments (leaves) to the root. Express each node as an Element class.
   const siblingPath = await merkleTree.getSiblingPath(
-    account,
     fTokenShieldInstance,
     commitment,
     commitmentIndex,
