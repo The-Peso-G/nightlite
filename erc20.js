@@ -500,27 +500,24 @@ async function transfer(
 }
 
 /**
-This function is the simple batch equivalent of fungible transfer.  It takes a single
-input coin and splits it between 20 recipients (some of which could be the original owner)
-It's really the 'split' of a join-split.  It's no use for non-fungibles because, for them,
-there's no concept of joining and splitting (yet).
-@param {string} C - The value of the input coin C
-@param {array} E - The values of the output coins (including the change coin)
-@param {array} pkB - Bobs' public keys (must include at least one of pkA for change)
-@param {string} S_C - Alice's salt
-@param {array} S_E - Bobs' salts
-@param {string} skA - Alice's private ('s'ecret) key
-@param {string} zC - Alice's token commitment
-@param {integer} zCIndex - the position of zC in the on-chain Merkle Tree
-@param {string} account - the account that is paying for this
-@returns {array} zE - The output token commitments
-@returns {array} z_E_index - the indexes of the commitments within the Merkle Tree.  This is required for later transfers/joins so that Alice knows which leaf of the Merkle Tree she needs to get from the fTokenShieldInstance contract in order to calculate a path.
-@returns {object} txReceipt - a promise of a blockchain transaction
-*/
+ * This function is the simple batch equivalent of fungible transfer.  It takes a single
+ * input coin and splits it between 20 recipients (some of which could be the original owner)
+ * It's really the 'split' of a join-split.  It's no use for non-fungibles because, for them,
+ * there's no concept of joining and splitting (yet).
+ * @param {Object} _inputCommitment - commitment object owned by sender
+ * @param {array} outputCommitments - Array of 20 commitments.
+ * @param {string} senderSecretKey - Private key of sender
+ * @param {Object} blockchainOptions
+ * @param {String} blockchainOptions.erc20Address - ABI of fTokenShieldInstance
+ * @param {String} blockchainOptions.fTokenShieldJson - ABI of fTokenShieldInstance
+ * @param {String} blockchainOptions.fTokenShieldAddress - Address of deployed fTokenShieldContract
+ * @param {String} blockchainOptions.account - Account that is sending these transactions
+ * @returns {Object[]} outputCommitments - Updated outputCommitments with their commitments and indexes.
+ * @returns {Object} Transaction object
+ */
 async function simpleFungibleBatchTransfer(
   _inputCommitment,
-  _outputCommitments,
-  receiversPublicKeys,
+  outputCommitments,
   senderSecretKey,
   blockchainOptions,
   zokratesOptions,
@@ -547,13 +544,10 @@ async function simpleFungibleBatchTransfer(
   const fTokenShieldInstance = await fTokenShield.at(fTokenShieldAddress);
 
   const inputCommitment = _inputCommitment;
-  const outputCommitments = _outputCommitments;
 
   // check we have arrays of the correct length
   if (outputCommitments.length !== config.BATCH_PROOF_SIZE)
     throw new Error('outputCommitments array is the wrong length');
-  if (receiversPublicKeys.length !== config.BATCH_PROOF_SIZE)
-    throw new Error('receiversPublicKeys array is the wrong length');
 
   // as BigInt is a better representation (up until now we've preferred hex strings), we may get inputs passed as hex strings so let's do a conversion just in case
   // addition check
@@ -565,12 +559,12 @@ async function simpleFungibleBatchTransfer(
   // Calculate new arguments for the proof:
   inputCommitment.nullifier = utils.shaHash(inputCommitment.salt, senderSecretKey);
 
-  for (let i = 0; i < outputCommitments.length; i += 1) {
-    outputCommitments[i].commitment = utils.shaHash(
+  for (const outputCommitment of outputCommitments) {
+    outputCommitment.commitment = utils.shaHash(
       erc20AddressPadded,
-      outputCommitments[i].value,
-      receiversPublicKeys[i],
-      outputCommitments[i].salt,
+      outputCommitment.value,
+      outputCommitment.receiver.publicKey,
+      outputCommitment.salt,
     );
   }
 
@@ -617,7 +611,7 @@ async function simpleFungibleBatchTransfer(
     new Element(inputCommitment.commitmentIndex, 'field', 128, 1), // the binary decomposition of a leafIndex gives its path's 'left-right' positions up the tree. The decomposition is done inside the circuit.,,
     new Element(inputCommitment.nullifier, 'field'),
     ...outputCommitments.map(item => new Element(item.value, 'field', 128, 1)),
-    ...receiversPublicKeys.map(item => new Element(item, 'field')),
+    ...outputCommitments.map(item => new Element(item.receiver.publicKey, 'field')),
     ...outputCommitments.map(item => new Element(item.salt, 'field')),
     ...outputCommitments.map(item => new Element(item.commitment, 'field')),
     rootElement,
@@ -676,34 +670,36 @@ async function simpleFungibleBatchTransfer(
   const newLeavesLog = txReceipt.logs.filter(log => {
     return log.event === 'NewLeaves';
   });
-  const minOutputCommitmentIndex = parseInt(newLeavesLog[0].args.minLeafIndex, 10);
-  const maxOutputCommitmentIndex = minOutputCommitmentIndex + outputCommitments.length - 1;
+  let outputCommitmentIndex = parseInt(newLeavesLog[0].args.minLeafIndex, 10);
+
+  for (const outputCommitment of outputCommitments) {
+    outputCommitment.commitmentIndex = outputCommitmentIndex;
+    outputCommitmentIndex += 1;
+  }
 
   logger.debug('TRANSFER COMPLETE\n');
 
   return {
-    maxOutputCommitmentIndex,
     outputCommitments,
     txReceipt,
   };
 }
 /**
-This function is the consolidation equivalent of fungible transfer.  It takes 20 input coins (to mimic batch transfer) and transfers them to one recipient as one commitment.
-It's really the 'join' of a join-split.  It's no use for non-fungibles because, for them,
-there's no concept of joining and splitting (yet).
-@param {array} C - The value sof the input coins
-@param {string} E - The value of the output coin
-@param {array} pkB - Bobs' public keys (must include at least one of pkA for change)
-@param {string} S_C - Alice's salt
-@param {array} S_E - Bobs' salts
-@param {string} skA - Alice's private ('s'ecret) key
-@param {string} zC - Alice's token commitment
-@param {integer} zCIndex - the position of zC in the on-chain Merkle Tree
-@param {string} account - the account that is paying for this
-@returns {array} zE - The output token commitments
-@returns {array} z_E_index - the indexes of the commitments within the Merkle Tree.  This is required for later transfers/joins so that Alice knows which leaf of the Merkle Tree she needs to get from the fTokenShieldInstance contract in order to calculate a path.
-@returns {object} txReceipt - a promise of a blockchain transaction
-*/
+ * This function is the consolidation equivalent of fungible transfer.  It takes 20 input coins (to mimic batch transfer) and transfers them to one recipient as one commitment.
+ * It's really the 'join' of a join-split.  It's no use for non-fungibles because, for them,
+ * there's no concept of joining and splitting (yet).
+ * @param {array} _inputCommitments - Array of 20 commitments owned by the sender.
+ * @param {Object} _outputCommitment - commitment object to be transfer
+ * @param {String} receiverZkpPublicKey - Receiver's Zkp Public Key
+ * @param {String} senderSecretKey - Private key of the sender's
+ * @param {Object} blockchainOptions
+ * @param {String} blockchainOptions.erc20Address - ABI of fTokenShieldInstance
+ * @param {String} blockchainOptions.fTokenShieldJson - ABI of fTokenShieldInstance
+ * @param {String} blockchainOptions.fTokenShieldAddress - Address of deployed fTokenShieldContract
+ * @param {String} blockchainOptions.account - Account that is sending these transactions
+ * @returns {Object[]} outputCommitment - Updated outputCommitment with their commitment and index.
+ * @returns {Object} Transaction object
+ */
 async function consolidationTransfer(
   _inputCommitments,
   _outputCommitment,
