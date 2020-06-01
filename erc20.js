@@ -438,16 +438,30 @@ async function transfer(
   );
   logger.debug(`./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-transfer/out`);
 
-  await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${outputCommitments[0].commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Computing proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: proofName,
-  });
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${proofName}`));
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${outputCommitments[0].commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${outputCommitments[0].commitment}-${proofName}`,
+    },
+  );
+
+  let { proof } = JSON.parse(
+    fs.readFileSync(`${outputDirectory}/${outputCommitments[0].commitment}-${proofName}`),
+  );
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -490,6 +504,16 @@ async function transfer(
   outputCommitments[0].commitmentIndex = parseInt(newLeavesLog[0].args.minLeafIndex, 10);
   // eslint-disable-next-line no-param-reassign
   outputCommitments[1].commitmentIndex = outputCommitments[0].commitmentIndex + 1;
+
+  if (fs.existsSync(`${outputDirectory}/${outputCommitments[0].commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${outputCommitments[0].commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${outputCommitments[0].commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${outputCommitments[0].commitment}-witness`);
+
+  logger.debug(
+    `Deleted file ${outputDirectory}/${outputCommitments[0].commitment}-${proofName} \n`,
+  );
 
   logger.debug('TRANSFER COMPLETE\n');
 
@@ -624,16 +648,30 @@ async function simpleFungibleBatchTransfer(
     `./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-batch-transfer/out`,
   );
 
-  await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${inputCommitment.commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Generating proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: proofName,
-  });
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${proofName}`));
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${inputCommitment.commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${inputCommitment.commitment}-${proofName}`,
+    },
+  );
+
+  let { proof } = JSON.parse(
+    fs.readFileSync(`${outputDirectory}/${inputCommitment.commitment}-${proofName}`),
+  );
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -676,6 +714,14 @@ async function simpleFungibleBatchTransfer(
     outputCommitment.commitmentIndex = outputCommitmentIndex;
     outputCommitmentIndex += 1;
   }
+
+  if (fs.existsSync(`${outputDirectory}/${inputCommitment.commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${inputCommitment.commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${inputCommitment.commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${inputCommitment.commitment}-witness`);
+
+  logger.debug(`Deleted file ${outputDirectory}/${inputCommitment.commitment}-${proofName}`);
 
   logger.debug('TRANSFER COMPLETE\n');
 
@@ -989,16 +1035,28 @@ async function burn(
   );
   logger.debug(`./zokrates compute-witness -a ${allInputs.join(' ')} -i gm17/ft-burn/out`);
 
-  await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
   logger.debug('Computing proof...');
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: proofName,
-  });
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${proofName}`));
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
+
+  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -1036,6 +1094,14 @@ async function burn(
 
   const newRoot = await fTokenShieldInstance.latestRoot();
   logger.debug(`Merkle Root after burn: ${newRoot}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-witness`);
+
+  logger.debug(`Deleted File ${outputDirectory}/${commitment}-${proofName} \n`);
 
   logger.debug('BURN COMPLETE\n');
 

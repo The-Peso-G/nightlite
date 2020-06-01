@@ -308,15 +308,26 @@ async function transfer(
     new Element(outputCommitment, 'field'),
   ]);
 
-  await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: proofName,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${proofName}`));
+  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -353,6 +364,14 @@ async function transfer(
     return log.event === 'NewLeaf';
   });
   const outputCommitmentIndex = newLeafLog[0].args.leafIndex;
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-witness`);
+
+  logger.debug(`Deleted File ${outputDirectory}/${commitment}-${proofName}`);
 
   logger.debug('TRANSFER COMPLETE\n');
 
@@ -489,15 +508,26 @@ async function burn(
     rootElement,
   ]);
 
-  await zokrates.computeWitness(codePath, outputDirectory, witnessName, allInputs);
+  await zokrates.computeWitness(
+    codePath,
+    outputDirectory,
+    `${commitment}-${witnessName}`,
+    allInputs,
+  );
 
-  await zokrates.generateProof(pkPath, codePath, `${outputDirectory}/witness`, provingScheme, {
-    createFile: createProofJson,
-    directory: outputDirectory,
-    fileName: proofName,
-  });
+  await zokrates.generateProof(
+    pkPath,
+    codePath,
+    `${outputDirectory}/${commitment}-witness`,
+    provingScheme,
+    {
+      createFile: createProofJson,
+      directory: outputDirectory,
+      fileName: `${commitment}-${proofName}`,
+    },
+  );
 
-  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${proofName}`));
+  let { proof } = JSON.parse(fs.readFileSync(`${outputDirectory}/${commitment}-${proofName}`));
 
   proof = Object.values(proof);
   // convert to flattened array:
@@ -532,6 +562,14 @@ async function burn(
     },
   );
   utils.gasUsedStats(txReceipt, 'burn');
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-${proofName}`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-${proofName}`);
+
+  if (fs.existsSync(`${outputDirectory}/${commitment}-witness`))
+    fs.unlinkSync(`${outputDirectory}/${commitment}-witness`);
+
+  logger.debug(`Deleted File ${outputDirectory}/${commitment}-${proofName} \n`);
 
   logger.debug('BURN COMPLETE\n');
 
