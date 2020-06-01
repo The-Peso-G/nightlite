@@ -5,13 +5,13 @@
  * Ethereum and Zokrates
  */
 
-const config = require('config');
 const BI = require('big-integer');
 const hexToBinary = require('hex-to-binary');
 const crypto = require('crypto');
 // eslint-disable-next-line
 const createKeccakHash = require('keccak');
 const { Buffer } = require('safe-buffer');
+const config = require('./config');
 const logger = require('./logger');
 
 const inputsHashLength = 32;
@@ -537,12 +537,20 @@ function concatenateThenHash(...items) {
 /**
  * function to generate a promise that resolves to a string of hex
  * @param {int} bytes - the number of bytes of hex that should be returned
+ * @param {int} max - optional parameter to set a maximum value
  */
-function randomHex(bytes) {
+function randomHex(bytes, max) {
+  if (max !== undefined && (Buffer.byteLength(decToHex(max.toString()), 'utf8') - 2) / 2 < bytes) {
+    throw new Error(`Number smaller than ${bytes} bytes passed as maximum`);
+  }
   return new Promise((resolve, reject) => {
     crypto.randomBytes(bytes, (err, buf) => {
       if (err) reject(err);
-      resolve(`0x${buf.toString('hex')}`);
+      if (hexToDec(buf.toString('hex')) > max) {
+        randomHex(bytes, max);
+      } else {
+        resolve(`0x${buf.toString('hex')}`);
+      }
     });
   });
 }
@@ -602,7 +610,13 @@ function formatInputsForZkSnark(elements) {
         // each vector element will be a 'decimal representation' of integers modulo a prime. p=21888242871839275222246405745257275088548364400416034343698204186575808495617 (roughly = 2*10e76 or = 2^254)
         a = a.concat(hexToFieldPreserve(element.hex, element.packingSize, element.packets, 1));
         break;
-
+      case 'scalar':
+        // this copes with a decimal (BigInt) field element, that needs no conversion
+        // eslint-disable-next-line valid-typeof
+        if (typeof element.hex !== 'bigint')
+          throw new Error(`scalar ${element.hex} is not of type BigInt`);
+        a = a.concat(element.hex.toString(10));
+        break;
       default:
         throw new Error('Encoding type not recognised');
     }
