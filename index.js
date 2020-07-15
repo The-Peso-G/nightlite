@@ -1,3 +1,4 @@
+const config = require('./config');
 const generateZokratesFiles = require('./setup/generateZokratesFiles');
 const merkleTree = require('./merkleTree');
 const provider = require('./provider');
@@ -18,6 +19,11 @@ if (process.env.COMPLIANCE === 'true') {
   erc20 = erc20rc;
   erc721 = erc721rc;
 }
+
+function overrideDefaultConfig(passedConfig) {
+  Object.assign(config, passedConfig);
+}
+
 module.exports = {
   generateZokratesFiles,
   merkleTree,
@@ -27,4 +33,5 @@ module.exports = {
   erc721,
   utils,
   elgamal,
+  overrideDefaultConfig,
 };
