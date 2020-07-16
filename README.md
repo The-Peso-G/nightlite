@@ -185,15 +185,13 @@ hashing, but if you have another global config file, those parameters could be o
 issues.
 
 In particular, MiMC hashing requires merkle tree nodes to be 32 bytes long, but SHA uses 27 bytes.
-This is ensured with:
+By default Nightlite use NODE_HASHLENGTH of value 27. There exist a override function, which
+can be used:
 
 ```sh
-const nodeHashLength = process.env.HASH_TYPE === 'mimc' ? 32 : 27;
-
-module.exports = {
-  LEAF_HASHLENGTH: 32, // expected length of an input to a hash in bytes
-  NODE_HASHLENGTH: nodeHashLength,
-  HASH_TYPE: process.env.HASH_TYPE,
+overrideDefaultConfig({
+  NODE_HASHLENGTH: 32
+});
 ```
 
 ## To Do
