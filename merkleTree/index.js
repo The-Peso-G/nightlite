@@ -323,6 +323,58 @@ function checkRoot(commitment, commitmentIndex, siblingPath, root) {
   }
 }
 
+/**
+checks the details of an incoming (newly transferred token), to ensure the data we have received is correct and legitimate!!
+*/
+async function checkCorrectness(
+  contractAddress,
+  value,
+  publicKey,
+  salt,
+  commitment,
+  commitmentIndex,
+  blockNumber,
+  shieldContract,
+) {
+  console.log('Checking h(contractAddress|value|publicKey|salt) = z...');
+  const commitmentCheck = utils.concatenateThenHash(
+    `0x${utils.strip0x(contractAddress).padStart(64, '0')}`,
+    utils.strip0x(value).slice(-(config.LEAF_HASHLENGTH * 2)),
+    publicKey,
+    salt,
+  );
+
+  const zCorrect = commitmentCheck === commitment;
+  console.log('commitment:', commitment);
+  console.log('commitmentCheck:', commitmentCheck);
+
+  console.log(
+    'Checking the commitment exists in the merkle-tree db (and therefore was emitted as an event on-chain)...',
+  );
+  console.log('commitment:', commitment);
+  console.log('commitmentIndex:', commitmentIndex);
+  const { contractName } = shieldContract.constructor._json; // eslint-disable-line no-underscore-dangle
+
+  // query the merkle-tree microservice until it's filtered the blockNumber we wish to query:
+  await waitForBlockNumber(contractName, blockNumber);
+
+  const leaf = await getLeafByLeafIndex(contractName, commitmentIndex);
+  console.log('leaf found:', leaf);
+  if (leaf.value !== commitment)
+    throw new Error(
+      `Could not find commitment ${commitment} at the given commitmentIndex ${commitmentIndex} in  the merkle-tree microservice. Found ${leaf.value} instead.`,
+    );
+
+  const zOnchainCorrect = leaf.value === commitment;
+  console.log('commitment:', commitment);
+  console.log('commitment emmitted by blockchain:', leaf.value);
+
+  return {
+    zCorrect,
+    zOnchainCorrect,
+  };
+}
+
 module.exports = {
   startEventFilter,
   waitForBlockNumber,
@@ -330,4 +382,5 @@ module.exports = {
   getSiblingPath,
   getSiblingPathByLeafIndex,
   checkRoot,
+  checkCorrectness,
 };
