@@ -60,7 +60,7 @@ async function mint(tokenId, zkpPublicKey, salt, blockchainOptions, zokratesOpti
   // Calculate new arguments for the proof:
   const commitment = utils.shaHash(
     erc721AddressPadded,
-    utils.strip0x(tokenId).slice(-32 * 2),
+    utils.strip0x(tokenId).slice(-(config.LEAF_HASHLENGTH * 2)),
     zkpPublicKey,
     salt,
   );
